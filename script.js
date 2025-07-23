@@ -43,7 +43,7 @@ function drawGrid(stimulus) {
   for (let i = 0; i < 9; i++) {
     const cell = document.createElement("div");
     cell.className = "grid-cell";
-    if (stimulus.position === i) {
+    if (stimulus && stimulus.position === i) {
       cell.classList.add("active");
       cell.appendChild(drawShape(stimulus.color, stimulus.shape));
     }
@@ -154,8 +154,8 @@ function finish() {
 
 function startGame() {
   // Initialize
-  sequence = [randomStimulus()];
-  for (let i = 1; i < TURNS + 1; i++) {
+  sequence = [];
+  for (let i = 0; i < TURNS + 1; i++) {
     sequence.push(randomStimulus());
   }
   turn = 0;
@@ -163,8 +163,13 @@ function startGame() {
   pending = [false, false, false, false];
   resultEl.innerHTML = "";
   updateProgressBar(0);
-  nextTurn();
-  intervalId = setInterval(nextTurn, 2000);
+  // Ensure grid is always visible at the start
+  drawGrid(sequence[0]);
+  // Start main loop after a brief delay to show initial state
+  setTimeout(() => {
+    nextTurn();
+    intervalId = setInterval(nextTurn, 2000);
+  }, 700);
 }
 
 // Start on load
