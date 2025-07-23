@@ -1,99 +1,185 @@
-body {
-  font-family: system-ui, sans-serif;
-  background: #f4f4f4;
-  margin: 0;
+// Config
+const N = 2;
+const TURNS = 15;
+const COLORS = ["#f94144", "#90be6d", "#577590"];
+const SHAPES = ["star", "rectangle", "square", "circle", "triangle", "kite"];
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+// State
+let sequence = [];
+let turn = 0;
+let responses = [];
+let pending = [false, false, false, false];
+let intervalId = null;
+let acceptingInput = false;
+
+// DOM
+const gridEl = document.getElementById("grid");
+const resultEl = document.getElementById("result");
+const btns = [
+  document.getElementById("pos-btn"),
+  document.getElementById("col-btn"),
+  document.getElementById("shape-btn"),
+  document.getElementById("sound-btn")
+];
+const progressBar = document.getElementById("progress-bar");
+
+// Utility
+function getRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
-.container {
-  max-width: 460px;
-  margin: 40px auto;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 8px 32px #0001;
-  padding: 24px 24px 12px 24px;
-  text-align: center;
+
+function randomStimulus() {
+  return {
+    position: Math.floor(Math.random() * 9),
+    color: getRandom(COLORS),
+    shape: getRandom(SHAPES),
+    letter: ALPHABET[Math.floor(Math.random() * ALPHABET.length)]
+  };
 }
-h1 {
-  margin-bottom: 10px;
+
+// Draw grid and highlight current stimulus
+function drawGrid(stimulus) {
+  gridEl.innerHTML = "";
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement("div");
+    cell.className = "grid-cell";
+    if (stimulus && stimulus.position === i) {
+      cell.classList.add("active");
+      cell.appendChild(drawShape(stimulus.color, stimulus.shape));
+    }
+    gridEl.appendChild(cell);
+  }
 }
-#progress-bar-container {
-  width: 100%;
-  background: #e0e0e0;
-  border-radius: 10px;
-  margin: 8px 0 18px 0;
-  height: 18px;
-  position: relative;
-  overflow: hidden;
+
+// Shapes SVGs
+function drawShape(color, shape) {
+  const size = 46;
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("width", size);
+  svg.setAttribute("height", size);
+
+  if (shape === "star") {
+    svg.innerHTML = `<polygon points="23,4 28,18 43,18 31,27 35,42 23,33 11,42 15,27 3,18 18,18" fill="${color}"/>`;
+  }
+  else if (shape === "rectangle") {
+    svg.innerHTML = `<rect x="6" y="16" width="34" height="18" rx="4" fill="${color}"/>`;
+  }
+  else if (shape === "square") {
+    svg.innerHTML = `<rect x="10" y="10" width="26" height="26" fill="${color}"/>`;
+  }
+  else if (shape === "circle") {
+    svg.innerHTML = `<circle cx="23" cy="23" r="18" fill="${color}"/>`;
+  }
+  else if (shape === "triangle") {
+    svg.innerHTML = `<polygon points="23,8 42,38 4,38" fill="${color}"/>`;
+  }
+  else if (shape === "kite") {
+    svg.innerHTML = `<polygon points="23,5 36,23 23,41 10,23" fill="${color}"/>`;
+  }
+  return svg;
 }
-#progress-bar {
-  background: linear-gradient(90deg, #43aa8b, #577590);
-  height: 100%;
-  border-radius: 10px;
-  width: 0%;
-  transition: width 0.4s;
+
+// Letter audio via SpeechSynthesis
+function speakLetter(letter) {
+  if ('speechSynthesis' in window) {
+    const utter = new SpeechSynthesisUtterance(letter);
+    utter.lang = "en-US";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }
 }
-.main-flex {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+
+// Button event handlers
+btns.forEach((btn, i) => {
+  btn.addEventListener("click", () => {
+    if (!acceptingInput) return;
+    pending[i] = !pending[i];
+    btn.classList.add("clicked");
+    btn.classList.toggle("selected", pending[i]);
+    setTimeout(() => btn.classList.remove("clicked"), 1000);
+  });
+});
+
+// Progress bar update
+function updateProgressBar(turn) {
+  const percent = ((turn) / TURNS) * 100;
+  progressBar.style.width = percent + "%";
 }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 56px);
-  grid-template-rows: repeat(3, 56px);
-  gap: 10px;
-  justify-content: center;
-  margin: 18px 0;
-  background: none;
+
+function nextTurn() {
+  // Store responses of previous turn
+  if (turn > 0) {
+    responses.push([...pending]);
+    pending = [false, false, false, false];
+    btns.forEach(btn => btn.classList.remove("selected"));
+  }
+  if (turn >= TURNS) {
+    clearInterval(intervalId);
+    acceptingInput = false;
+    finish();
+    return;
+  }
+  updateProgressBar(turn);
+  let stim = sequence[turn];
+  drawGrid(stim);
+  speakLetter(stim.letter);
+  acceptingInput = true;
+  // After 2.5s, lock inputs and continue
+  setTimeout(() => {
+    acceptingInput = false;
+    btns.forEach(btn => btn.classList.remove("selected"));
+  }, 2500);
+  turn++;
 }
-.grid-cell {
-  background: #e9ecef;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 56px;
-  width: 56px;
-  transition: background 0.2s;
+
+function finish() {
+  // Lock in last responses (after turn TURNS)
+  responses.push([...pending]);
+  // Calculate separate scores
+  let shapeScore = 0, posScore = 0, colorScore = 0, audioScore = 0;
+  for (let i = N; i < sequence.length; i++) {
+    const prev = sequence[i - N];
+    const curr = sequence[i];
+    const resp = responses[i - 1] || [false, false, false, false];
+    // 0=pos, 1=color, 2=shape, 3=audio
+    if (curr.position === prev.position && resp[0]) posScore++;
+    if (curr.position !== prev.position && !resp[0]) posScore++;
+    if (curr.color === prev.color && resp[1]) colorScore++;
+    if (curr.color !== prev.color && !resp[1]) colorScore++;
+    if (curr.shape === prev.shape && resp[2]) shapeScore++;
+    if (curr.shape !== prev.shape && !resp[2]) shapeScore++;
+    if (curr.letter === prev.letter && resp[3]) audioScore++;
+    if (curr.letter !== prev.letter && !resp[3]) audioScore++;
+  }
+  resultEl.innerHTML = `
+    <h2>Your Scores</h2>
+    <p>Shape: <b>${shapeScore} / ${(sequence.length-N)}</b></p>
+    <p>Position: <b>${posScore} / ${(sequence.length-N)}</b></p>
+    <p>Color: <b>${colorScore} / ${(sequence.length-N)}</b></p>
+    <p>Audio: <b>${audioScore} / ${(sequence.length-N)}</b></p>
+    <p style="margin-top:10px"><b>Total: ${shapeScore + posScore + colorScore + audioScore} / ${(sequence.length-N)*4}</b></p>
+  `;
 }
-.grid-cell.active {
-  background: #fffbe6;
-  box-shadow: 0 0 0 2px #ffd70099;
+
+function startGame() {
+  // Initialize
+  sequence = [];
+  for (let i = 0; i < TURNS + 1; i++) {
+    sequence.push(randomStimulus());
+  }
+  turn = 0;
+  responses = [];
+  pending = [false, false, false, false];
+  resultEl.innerHTML = "";
+  updateProgressBar(0);
+  drawGrid(sequence[0]);
+  setTimeout(() => {
+    nextTurn();
+    intervalId = setInterval(nextTurn, 2500);
+  }, 700);
 }
-.stimuli {
-  margin: 18px 0;
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-.stimuli button {
-  border: none;
-  background: #adb5bd;
-  border-radius: 6px;
-  color: #fff;
-  font-size: 14px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.stimuli button.clicked {
-  background: #444 !important;
-  color: #fff !important;
-}
-.stimuli button.selected {
-  background: #222 !important;
-}
-.result {
-  background: #f8f9fa;
-  border-radius: 8px;
-  margin: 16px 0 8px 0;
-  padding: 10px;
-  font-size: 1.15em;
-}
-.instructions {
-  color: #444;
-  font-size: 0.96em;
-  margin-top: 10px;
-}
-svg {
-  display: block;
-}
+
+// Start on load
+window.onload = startGame;
