@@ -9,21 +9,25 @@
 <body>
   <div class="container">
     <h1>Quad N-Back</h1>
-    <p id="turn-label"></p>
-    <div id="grid" class="grid"></div>
+    <div id="progress-bar-container">
+      <div id="progress-bar"></div>
+    </div>
+    <div class="main-flex">
+      <div id="grid" class="grid"></div>
+      <button id="audio-toggle-btn" class="audio-on">Audio ON</button>
+    </div>
     <div class="stimuli">
       <button id="pos-btn">Position Match</button>
       <button id="col-btn">Color Match</button>
-      <button id="shape-btn">Chess Piece Match</button>
-      <button id="sound-btn">Letter Match</button>
+      <button id="shape-btn">Shape Match</button>
+      <button id="sound-btn">Audio Match</button>
     </div>
-    <div id="letter-box" class="letter-box"></div>
     <div id="result" class="result"></div>
     <div class="instructions">
       <p>
-        Every turn, a tile is highlighted with a color and a chess piece, and a letter is shown and spoken.<br/>
+        Each turn, a tile is highlighted with a color and a shape, and a letter is spoken.<br/>
         Mark which attribute(s) match the one from <b>2 steps back</b> (if any), before the next turn.<br/>
-        Try to maximize your score! V2
+        Try to maximize your score!
       </p>
     </div>
   </div>
