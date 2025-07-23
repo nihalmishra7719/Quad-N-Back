@@ -79,6 +79,9 @@ h1 {
   background: #444 !important;
   color: #fff !important;
 }
+.stimuli button.selected {
+  background: #222 !important;
+}
 .result {
   background: #f8f9fa;
   border-radius: 8px;
