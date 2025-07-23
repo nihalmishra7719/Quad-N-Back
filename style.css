@@ -36,26 +36,6 @@ h1 {
   align-items: flex-start;
   justify-content: center;
 }
-#audio-toggle-btn {
-  align-self: center;
-  margin-left: 22px;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 8px;
-  font-size: 1em;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-  min-width: 90px;
-}
-#audio-toggle-btn.audio-on {
-  background: #43aa8b;
-  color: #fff;
-}
-#audio-toggle-btn.audio-off {
-  background: #f94144;
-  color: #fff;
-}
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 56px);
@@ -63,6 +43,7 @@ h1 {
   gap: 10px;
   justify-content: center;
   margin: 18px 0;
+  background: none;
 }
 .grid-cell {
   background: #e9ecef;
@@ -73,6 +54,10 @@ h1 {
   height: 56px;
   width: 56px;
   transition: background 0.2s;
+}
+.grid-cell.active {
+  background: #fffbe6;
+  box-shadow: 0 0 0 2px #ffd70099;
 }
 .stimuli {
   margin: 18px 0;
