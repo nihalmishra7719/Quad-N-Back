@@ -4,7 +4,7 @@ body {
   margin: 0;
 }
 .container {
-  max-width: 440px;
+  max-width: 460px;
   margin: 40px auto;
   background: #fff;
   border-radius: 14px;
@@ -13,7 +13,48 @@ body {
   text-align: center;
 }
 h1 {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+#progress-bar-container {
+  width: 100%;
+  background: #e0e0e0;
+  border-radius: 10px;
+  margin: 8px 0 18px 0;
+  height: 18px;
+  position: relative;
+  overflow: hidden;
+}
+#progress-bar {
+  background: linear-gradient(90deg, #43aa8b, #577590);
+  height: 100%;
+  border-radius: 10px;
+  width: 0%;
+  transition: width 0.4s;
+}
+.main-flex {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+#audio-toggle-btn {
+  align-self: center;
+  margin-left: 22px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  min-width: 90px;
+}
+#audio-toggle-btn.audio-on {
+  background: #43aa8b;
+  color: #fff;
+}
+#audio-toggle-btn.audio-off {
+  background: #f94144;
+  color: #fff;
 }
 .grid {
   display: grid;
@@ -21,7 +62,7 @@ h1 {
   grid-template-rows: repeat(3, 56px);
   gap: 10px;
   justify-content: center;
-  margin: 24px 0;
+  margin: 18px 0;
 }
 .grid-cell {
   background: #e9ecef;
@@ -53,24 +94,17 @@ h1 {
   background: #444 !important;
   color: #fff !important;
 }
-.letter-box {
-  margin: 18px 0 10px 0;
-  font-size: 2.6em;
-  font-weight: bold;
-  letter-spacing: 0.1em;
-  min-height: 1.5em;
-}
 .result {
   background: #f8f9fa;
   border-radius: 8px;
   margin: 16px 0 8px 0;
   padding: 10px;
-  font-size: 1.2em;
+  font-size: 1.15em;
 }
 .instructions {
   color: #444;
   font-size: 0.96em;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 svg {
   display: block;
