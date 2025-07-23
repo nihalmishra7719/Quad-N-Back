@@ -1,5 +1,5 @@
 // Config
-const N = 2;
+let N = 2;
 const TURNS = 15;
 const COLORS = ["#f94144", "#90be6d", "#577590"];
 const SHAPES = ["star", "rectangle", "square", "circle", "triangle", "kite"];
@@ -11,6 +11,8 @@ let turn = 0;
 let responses = [];
 let pending = [false, false, false, false];
 let intervalId = null;
+let acceptingInput = false;
+let lockInputTimeoutId = null;
 
 // DOM
 const gridEl = document.getElementById("grid");
@@ -22,6 +24,8 @@ const btns = [
   document.getElementById("sound-btn")
 ];
 const progressBar = document.getElementById("progress-bar");
+const nBackSelect = document.getElementById("nback-level");
+const nBackSpan = document.getElementById("nback-span");
 
 // Utility
 function getRandom(arr) {
@@ -93,11 +97,36 @@ function speakLetter(letter) {
 // Button event handlers
 btns.forEach((btn, i) => {
   btn.addEventListener("click", () => {
-    pending[i] = true;
+    if (!acceptingInput) return;
+    pending[i] = !pending[i];
+    btn.classList.remove("match-correct","match-wrong");
     btn.classList.add("clicked");
-    setTimeout(() => btn.classList.remove("clicked"), 1000);
+    btn.classList.toggle("selected", pending[i]);
+    setTimeout(() => btn.classList.remove("clicked"), 300);
+    // Show correctness feedback for this button
+    if (turn > N) {
+      const curr = sequence[turn-1];
+      const prev = sequence[turn-1-N];
+      let isCorrect = false;
+      if (i===0) isCorrect = curr.position === prev.position;
+      if (i===1) isCorrect = curr.color === prev.color;
+      if (i===2) isCorrect = curr.shape === prev.shape;
+      if (i===3) isCorrect = curr.letter === prev.letter;
+      if (pending[i]) {
+        btn.classList.add(isCorrect ? "match-correct" : "match-wrong");
+        setTimeout(() => btn.classList.remove("match-correct","match-wrong"), 900);
+      }
+    }
   });
 });
+
+function clearAllButtonStates() {
+  btns.forEach(btn => {
+    btn.classList.remove("selected");
+    btn.classList.remove("match-correct");
+    btn.classList.remove("match-wrong");
+  });
+}
 
 // Progress bar update
 function updateProgressBar(turn) {
@@ -106,13 +135,15 @@ function updateProgressBar(turn) {
 }
 
 function nextTurn() {
+  // Store responses of previous turn
   if (turn > 0) {
-    // Lock in previous responses
     responses.push([...pending]);
     pending = [false, false, false, false];
+    clearAllButtonStates();
   }
   if (turn >= TURNS) {
     clearInterval(intervalId);
+    acceptingInput = false;
     finish();
     return;
   }
@@ -120,6 +151,11 @@ function nextTurn() {
   let stim = sequence[turn];
   drawGrid(stim);
   speakLetter(stim.letter);
+  acceptingInput = true;
+  lockInputTimeoutId = setTimeout(() => {
+    acceptingInput = false;
+    clearAllButtonStates();
+  }, 2500);
   turn++;
 }
 
@@ -152,10 +188,21 @@ function finish() {
   `;
 }
 
-function startGame() {
-  // Initialize
+// N-back select handler
+nBackSelect.addEventListener("change", (e) => {
+  N = parseInt(e.target.value, 10);
+  nBackSpan.textContent = N;
+  restartGame();
+});
+
+// Ensure span matches N at first
+nBackSpan.textContent = N;
+
+function restartGame() {
+  if (intervalId) clearInterval(intervalId);
+  if (lockInputTimeoutId) clearTimeout(lockInputTimeoutId);
   sequence = [];
-  for (let i = 0; i < TURNS + 1; i++) {
+  for (let i = 0; i < TURNS + 4; i++) {
     sequence.push(randomStimulus());
   }
   turn = 0;
@@ -163,14 +210,12 @@ function startGame() {
   pending = [false, false, false, false];
   resultEl.innerHTML = "";
   updateProgressBar(0);
-  // Ensure grid is always visible at the start
   drawGrid(sequence[0]);
-  // Start main loop after a brief delay to show initial state
   setTimeout(() => {
     nextTurn();
-    intervalId = setInterval(nextTurn, 2000);
+    intervalId = setInterval(nextTurn, 2500);
   }, 700);
 }
 
 // Start on load
-window.onload = startGame;
+window.onload = restartGame;
