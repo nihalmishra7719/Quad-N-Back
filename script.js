@@ -1,8 +1,8 @@
 // Config
 const N = 2;
-const TURNS = 21;
+const TURNS = 15;
 const COLORS = ["#f94144", "#90be6d", "#577590"];
-const PIECES = ["pawn", "rook", "bishop", "knight", "queen", "king"];
+const SHAPES = ["star", "rectangle", "square", "circle", "triangle", "kite"];
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 // State
@@ -11,18 +11,19 @@ let turn = 0;
 let responses = [];
 let pending = [false, false, false, false];
 let intervalId = null;
+let audioOn = true;
 
 // DOM
 const gridEl = document.getElementById("grid");
-const turnLabel = document.getElementById("turn-label");
 const resultEl = document.getElementById("result");
-const letterBox = document.getElementById("letter-box");
 const btns = [
   document.getElementById("pos-btn"),
   document.getElementById("col-btn"),
   document.getElementById("shape-btn"),
   document.getElementById("sound-btn")
 ];
+const audioBtn = document.getElementById("audio-toggle-btn");
+const progressBar = document.getElementById("progress-bar");
 
 // Utility
 function getRandom(arr) {
@@ -33,7 +34,7 @@ function randomStimulus() {
   return {
     position: Math.floor(Math.random() * 9),
     color: getRandom(COLORS),
-    shape: getRandom(PIECES),
+    shape: getRandom(SHAPES),
     letter: ALPHABET[Math.floor(Math.random() * ALPHABET.length)]
   };
 }
@@ -45,45 +46,44 @@ function drawGrid(stimulus) {
     const cell = document.createElement("div");
     cell.className = "grid-cell";
     if (stimulus.position === i) {
-      cell.appendChild(drawPiece(stimulus.color, stimulus.shape));
+      cell.appendChild(drawShape(stimulus.color, stimulus.shape));
     }
     gridEl.appendChild(cell);
   }
 }
 
-// Chess piece SVGs
-function drawPiece(color, piece) {
+// Shapes SVGs
+function drawShape(color, shape) {
   const size = 46;
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
   svg.setAttribute("width", size);
   svg.setAttribute("height", size);
-  // All pieces are simple silhouettes, monochrome filled with color
-  if (piece === "pawn") {
-    svg.innerHTML = `<circle cx="23" cy="18" r="9" fill="${color}"/><rect x="16" y="27" width="14" height="12" rx="3" fill="${color}"/>`;
+
+  if (shape === "star") {
+    svg.innerHTML = `<polygon points="23,4 28,18 43,18 31,27 35,42 23,33 11,42 15,27 3,18 18,18" fill="${color}"/>`;
   }
-  else if (piece === "rook") {
-    svg.innerHTML = `<rect x="11" y="10" width="24" height="22" rx="2" fill="${color}"/><rect x="15" y="6" width="4" height="8" fill="${color}"/><rect x="27" y="6" width="4" height="8" fill="${color}"/><rect x="21" y="6" width="4" height="8" fill="${color}"/>`;
+  else if (shape === "rectangle") {
+    svg.innerHTML = `<rect x="6" y="16" width="34" height="18" rx="4" fill="${color}"/>`;
   }
-  else if (piece === "bishop") {
-    svg.innerHTML = `<ellipse cx="23" cy="18" rx="10" ry="16" fill="${color}"/><rect x="17" y="34" width="12" height="6" rx="3" fill="${color}"/><circle cx="23" cy="8" r="4" fill="${color}"/>`;
+  else if (shape === "square") {
+    svg.innerHTML = `<rect x="10" y="10" width="26" height="26" fill="${color}"/>`;
   }
-  else if (piece === "knight") {
-    svg.innerHTML = `<path d="M35 38 Q32 18 18 8 Q12 16 20 26 Q14 33 23 38 Z" fill="${color}"/><ellipse cx="20" cy="15" rx="2" ry="3" fill="#fff"/>`;
+  else if (shape === "circle") {
+    svg.innerHTML = `<circle cx="23" cy="23" r="18" fill="${color}"/>`;
   }
-  else if (piece === "queen") {
-    svg.innerHTML = `<ellipse cx="23" cy="14" rx="12" ry="9" fill="${color}"/><rect x="13" y="22" width="20" height="12" rx="5" fill="${color}"/><circle cx="11" cy="10" r="3" fill="${color}"/><circle cx="23" cy="6" r="3" fill="${color}"/><circle cx="35" cy="10" r="3" fill="${color}"/>`;
+  else if (shape === "triangle") {
+    svg.innerHTML = `<polygon points="23,8 42,38 4,38" fill="${color}"/>`;
   }
-  else if (piece === "king") {
-    svg.innerHTML = `<rect x="17" y="14" width="12" height="20" rx="4" fill="${color}"/><rect x="21" y="7" width="4" height="10" fill="${color}"/><rect x="19" y="10" width="8" height="4" fill="${color}"/>`;
+  else if (shape === "kite") {
+    svg.innerHTML = `<polygon points="23,5 36,23 23,41 10,23" fill="${color}"/>`;
   }
   return svg;
 }
 
-// Letter display and speech
-function showAndSpeakLetter(letter) {
-  letterBox.innerText = letter;
-  // Speak
+// Letter audio via SpeechSynthesis
+function speakLetter(letter) {
+  if (!audioOn) return;
   if ('speechSynthesis' in window) {
     const utter = new SpeechSynthesisUtterance(letter);
     utter.lang = "en-US";
@@ -92,7 +92,7 @@ function showAndSpeakLetter(letter) {
   }
 }
 
-// Setup button handlers
+// Button event handlers
 btns.forEach((btn, i) => {
   btn.addEventListener("click", () => {
     pending[i] = true;
@@ -100,6 +100,23 @@ btns.forEach((btn, i) => {
     setTimeout(() => btn.classList.remove("clicked"), 1000);
   });
 });
+
+audioBtn.addEventListener("click", () => {
+  audioOn = !audioOn;
+  updateAudioBtn();
+});
+
+function updateAudioBtn() {
+  audioBtn.classList.toggle("audio-on", audioOn);
+  audioBtn.classList.toggle("audio-off", !audioOn);
+  audioBtn.textContent = audioOn ? "Audio ON" : "Audio OFF";
+}
+
+// Progress bar update
+function updateProgressBar(turn) {
+  const percent = ((turn) / TURNS) * 100;
+  progressBar.style.width = percent + "%";
+}
 
 function nextTurn() {
   if (turn > 0) {
@@ -112,35 +129,40 @@ function nextTurn() {
     finish();
     return;
   }
-  turnLabel.textContent = `Turn: ${turn+1}/${TURNS+1}`;
+  updateProgressBar(turn);
   let stim = sequence[turn];
   drawGrid(stim);
-  showAndSpeakLetter(stim.letter);
+  speakLetter(stim.letter);
   turn++;
 }
 
 function finish() {
   // Lock in last responses (after turn TURNS)
   responses.push([...pending]);
-  // Calculate score
-  let score = 0;
+  // Calculate separate scores
+  let shapeScore = 0, posScore = 0, colorScore = 0, audioScore = 0;
   for (let i = N; i < sequence.length; i++) {
     const prev = sequence[i - N];
     const curr = sequence[i];
     const resp = responses[i - 1] || [false, false, false, false];
-    const matches = [
-      curr.position === prev.position,
-      curr.color === prev.color,
-      curr.shape === prev.shape,
-      curr.letter === prev.letter
-    ];
-    for (let j = 0; j < 4; j++) {
-      if (matches[j] && resp[j]) score++;
-      if (!matches[j] && !resp[j]) score++;
-    }
+    // 0=pos, 1=color, 2=shape, 3=audio
+    if (curr.position === prev.position && resp[0]) posScore++;
+    if (curr.position !== prev.position && !resp[0]) posScore++;
+    if (curr.color === prev.color && resp[1]) colorScore++;
+    if (curr.color !== prev.color && !resp[1]) colorScore++;
+    if (curr.shape === prev.shape && resp[2]) shapeScore++;
+    if (curr.shape !== prev.shape && !resp[2]) shapeScore++;
+    if (curr.letter === prev.letter && resp[3]) audioScore++;
+    if (curr.letter !== prev.letter && !resp[3]) audioScore++;
   }
-  resultEl.innerHTML = `<h2>Your Score</h2><p>${score} / ${(sequence.length-N)*4}</p>`;
-  letterBox.innerText = "";
+  resultEl.innerHTML = `
+    <h2>Your Scores</h2>
+    <p>Shape: <b>${shapeScore} / ${(sequence.length-N)}</b></p>
+    <p>Position: <b>${posScore} / ${(sequence.length-N)}</b></p>
+    <p>Color: <b>${colorScore} / ${(sequence.length-N)}</b></p>
+    <p>Audio: <b>${audioScore} / ${(sequence.length-N)}</b></p>
+    <p style="margin-top:10px"><b>Total: ${shapeScore + posScore + colorScore + audioScore} / ${(sequence.length-N)*4}</b></p>
+  `;
 }
 
 function startGame() {
@@ -153,7 +175,8 @@ function startGame() {
   responses = [];
   pending = [false, false, false, false];
   resultEl.innerHTML = "";
-  letterBox.innerText = "";
+  updateAudioBtn();
+  updateProgressBar(0);
   nextTurn();
   intervalId = setInterval(nextTurn, 2000);
 }
