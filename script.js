@@ -11,7 +11,6 @@ let turn = 0;
 let responses = [];
 let pending = [false, false, false, false];
 let intervalId = null;
-let audioOn = true;
 
 // DOM
 const gridEl = document.getElementById("grid");
@@ -22,7 +21,6 @@ const btns = [
   document.getElementById("shape-btn"),
   document.getElementById("sound-btn")
 ];
-const audioBtn = document.getElementById("audio-toggle-btn");
 const progressBar = document.getElementById("progress-bar");
 
 // Utility
@@ -46,6 +44,7 @@ function drawGrid(stimulus) {
     const cell = document.createElement("div");
     cell.className = "grid-cell";
     if (stimulus.position === i) {
+      cell.classList.add("active");
       cell.appendChild(drawShape(stimulus.color, stimulus.shape));
     }
     gridEl.appendChild(cell);
@@ -83,7 +82,6 @@ function drawShape(color, shape) {
 
 // Letter audio via SpeechSynthesis
 function speakLetter(letter) {
-  if (!audioOn) return;
   if ('speechSynthesis' in window) {
     const utter = new SpeechSynthesisUtterance(letter);
     utter.lang = "en-US";
@@ -100,17 +98,6 @@ btns.forEach((btn, i) => {
     setTimeout(() => btn.classList.remove("clicked"), 1000);
   });
 });
-
-audioBtn.addEventListener("click", () => {
-  audioOn = !audioOn;
-  updateAudioBtn();
-});
-
-function updateAudioBtn() {
-  audioBtn.classList.toggle("audio-on", audioOn);
-  audioBtn.classList.toggle("audio-off", !audioOn);
-  audioBtn.textContent = audioOn ? "Audio ON" : "Audio OFF";
-}
 
 // Progress bar update
 function updateProgressBar(turn) {
@@ -175,7 +162,6 @@ function startGame() {
   responses = [];
   pending = [false, false, false, false];
   resultEl.innerHTML = "";
-  updateAudioBtn();
   updateProgressBar(0);
   nextTurn();
   intervalId = setInterval(nextTurn, 2000);
